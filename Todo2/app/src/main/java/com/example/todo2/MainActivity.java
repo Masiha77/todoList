@@ -17,6 +17,9 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
+
 import org.w3c.dom.Text;
 
 import java.io.File;
@@ -26,20 +29,27 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    final List<String> list = new ArrayList<>();
+    private final List<String> list = new ArrayList<>();
+
+    private ListView listView;
+    private TextAdapter adapter;
+    private Button newTaskButton;
+    private Button deleteTaskButton;
+    private Button deleteAllTasksButton;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
 
-        final ListView listview = findViewById(R.id.listview);
-        final TextAdapter adapter = new TextAdapter();
+        listView = findViewById(R.id.listview);
+        /*adapter = new TextAdapter();*/
 
         adapter.setData(list);
-        listview.setAdapter(adapter);
+        listView.setAdapter(adapter);
 
-        listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
@@ -54,13 +64,14 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }).setNegativeButton("No", null)
                         .create();
-                        dialog.show();
+                dialog.show();
             }
         });
 
-        final Button newTaskbutton = findViewById(R.id.newTaskButton);
 
-        newTaskbutton.setOnClickListener(new View.OnClickListener() {
+        newTaskButton = findViewById(R.id.newTaskButton);
+
+        newTaskButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -78,73 +89,42 @@ public class MainActivity extends AppCompatActivity {
                                 adapter.setData(list);
                             }
                         }).setNegativeButton("cancel", null).create();
-                    dialog.show();
+                dialog.show();
             }
         });
 
-        final Button deleteAllTasksButton = findViewById(R.id.deleteAllTasks);
+
+        deleteAllTasksButton = findViewById(R.id.deleteAllTasks);
 
         deleteAllTasksButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                  AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
-                          .setTitle("Delete Tasks")
-                          .setMessage("Do you wanna delete all?")
-                          .setPositiveButton("Delete All Tasks" , new DialogInterface.OnClickListener() {
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Delete Tasks")
+                        .setMessage("Do you wanna delete all?")
+                        .setPositiveButton("Delete All Tasks", new DialogInterface.OnClickListener() {
 
-                              @Override
-                              public void onClick(DialogInterface dialog, int which) {
-                                  list.clear();
-                                  adapter.setData(list);
-                              }
-                          })
-                          .setNegativeButton("cancel", null)
-                          .create();
-                  dialog.show();
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                list.clear();
+                                adapter.setData(list);
+                            }
+                        })
+                        .setNegativeButton("cancel", null)
+                        .create();
+                dialog.show();
             }
         });
     }
 
+    public void getTaskListsFromBackend() {
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+
+        String url = "http://192.168.1.101:3000/api/";
 
 
-    class TextAdapter extends BaseAdapter {
-
-        List<String> list = new ArrayList<>();
-
-        void setData(List<String> mList) {
-            list.clear();
-            list.addAll(mList);
-            notifyDataSetChanged();
-        }
-
-        @Override
-        public int getCount() {
-            return list.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if(convertView==null){
-                LayoutInflater inflator = (LayoutInflater)
-                        MainActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                convertView = inflator.inflate(R.layout.item, parent, false);
-            }
-
-            TextView textView = convertView.findViewById((R.id.task));
-            textView.setText(list.get(position));
-            return convertView;
-
-        }
     }
 }
+
