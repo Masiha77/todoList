@@ -11,16 +11,22 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
+import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -47,8 +53,6 @@ import se.chalmers.cse.dit341.group00.helpers.SharedpreferencesManager;
 import se.chalmers.cse.dit341.group00.interfaces.InterfaceMainActivity;
 import se.chalmers.cse.dit341.group00.models.Tasklist;
 
-;
-
 
 /**
  * A simple {@link Fragment} subclass.
@@ -64,7 +68,7 @@ public class TaskListFragment<newTaskButton> extends Fragment implements View.On
     private InterfaceMainActivity mInterfaceMainActivity;
 
     private final ArrayList<Tasklist> list = new ArrayList<>();
-    private ListView listView ;
+    private ListView listView;
     private TextAdapter adapter;
     private Button newTaskButton;
     private Button deleteTaskButton;
@@ -109,6 +113,9 @@ public class TaskListFragment<newTaskButton> extends Fragment implements View.On
 
         newTaskButton.setActivated(true);
         newTaskButton.setOnClickListener(this);
+        /*listView.setActivated(true);
+        listView.setOnClickListener(this);*/
+
 
         adapter = new TextAdapter(list);
         listView.setAdapter(adapter);
@@ -136,7 +143,7 @@ public class TaskListFragment<newTaskButton> extends Fragment implements View.On
     public void onClick(View view) {
         switch (view.getId()) {
 
-            case R.id.newTaskButton: {
+            case R.id.newTaskButton:
 
                 final EditText taskInput = new EditText(getContext());
                 taskInput.setSingleLine();
@@ -168,10 +175,34 @@ public class TaskListFragment<newTaskButton> extends Fragment implements View.On
                             }
                         }).setNegativeButton("cancel", null).create();
                 dialog.show();
+                break;
 
-            }
+
+            case  R.id.listview:
+
+                listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
+                        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                                .setTitle("Delete this task")
+                                .setPositiveButton("yes", new DialogInterface.OnClickListener() {
+
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        String groupId = list.get(position).get_id();
+                                        deleteSelectedGroup(groupId);
+                                    }
+                                }).setNegativeButton("No", null)
+                                .create();
+                        dialog.show();
+                    }
+                });
+                break;
+
         }
     }
+
 
 
 
@@ -297,8 +328,61 @@ public class TaskListFragment<newTaskButton> extends Fragment implements View.On
 
     public void deleteSelectedGroup (String tasklistId) {
 
-    }
+        RequestQueue requestQueue = Volley.newRequestQueue(mInterfaceMainActivity.getContext());
 
+        String url = mInterfaceMainActivity.getUrl() + "tasklists/" + tasklistId;
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.DELETE, url, null, new Response.Listener<JSONObject>() {
+
+            @Override
+            public void onResponse(JSONObject response) {
+
+                System.out.println("inside onresponse line " + response);
+
+                try {
+
+                    System.out.println(response + "response line ");
+
+                    String JSONResponse = response.toString();
+                    JSONObject parsedData = new JSONObject(JSONResponse);
+                    System.out.println(parsedData + " parsed data line");
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.i(TAG, error.getMessage());
+                if (error instanceof TimeoutError || error instanceof NoConnectionError) {
+                    Toast.makeText(getContext(), "Error with connection to backend", Toast.LENGTH_SHORT).show();
+
+                } else if (error instanceof AuthFailureError) {
+                    Toast.makeText(getContext(), "Authentication failed", Toast.LENGTH_SHORT).show();
+
+                } else if (error instanceof NetworkError) {
+                    Toast.makeText(getContext(),
+                            "Error with the network",
+                            Toast.LENGTH_LONG).show();
+                } else if (error instanceof ParseError) {
+                    Toast.makeText(getContext(),
+                            "Error parsing information",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("x-auth-token", SharedpreferencesManager.getInstance().getToken());
+
+                return params;
+            }
+        };
+        requestQueue.add(jsonObjectRequest);
+    }
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
